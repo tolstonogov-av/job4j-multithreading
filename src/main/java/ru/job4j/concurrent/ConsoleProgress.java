@@ -18,7 +18,7 @@ public class ConsoleProgress implements Runnable {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                break;
+                Thread.currentThread().interrupt();
             }
             if (i == 2 || i == 0) {
                 increase = !increase;
