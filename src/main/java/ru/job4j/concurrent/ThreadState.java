@@ -18,6 +18,8 @@ public class ThreadState {
         second.start();
         while (first.getState() != Thread.State.TERMINATED
                 || second.getState() != Thread.State.TERMINATED) {
+            System.out.println("first state: " + first.getState());
+            System.out.println("second state: " + second.getState());
         }
         System.out.println(first.getName() + " and " + second.getName() + " are finished.");
     }
