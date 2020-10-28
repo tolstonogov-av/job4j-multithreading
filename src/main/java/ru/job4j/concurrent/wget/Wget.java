@@ -37,20 +37,15 @@ public class Wget implements Runnable {
     @Override
     public void run() {
         fileDest.delete();
-        char[] process = {'\\', '|', '/'};
-        int i = 0;
-        boolean increase = true;
-        System.out.print("\rLoading..." + process[i++]);
+        DownloadIndication downloadIndication = new DownloadIndication();
+        downloadIndication.printLoading();
         try (BufferedInputStream in = new BufferedInputStream(new URL(fileSource).openStream());
              FileOutputStream out = new FileOutputStream(fileDest)) {
             byte[] dataBuffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
                 out.write(dataBuffer, 0, bytesRead);
-                if (i == 2 || i == 0) {
-                    increase = !increase;
-                }
-                System.out.print("\rLoading..." + process[increase ? i++ : i--]);
+                downloadIndication.printLoading();
                 if (delay != 0) {
                     Thread.sleep(delay);
                     delay = 0;
