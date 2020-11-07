@@ -64,15 +64,13 @@ public class UserStorage {
         }
     }
 
-    public void transfer(int fromId, int toId, int amount) {
+    public synchronized void transfer(int fromId, int toId, int amount) {
         try {
             User fromUser = findById(fromId);
             User toUser = findById(toId);
             if (fromUser.getAmount() >= amount) {
-                synchronized (this) {
-                    update(User.of(fromUser.getId(), fromUser.getAmount() - amount));
-                    update(User.of(toUser.getId(), toUser.getAmount() + amount));
-                }
+                update(User.of(fromUser.getId(), fromUser.getAmount() - amount));
+                update(User.of(toUser.getId(), toUser.getAmount() + amount));
             }
         } catch (NullPointerException e) {
             e.printStackTrace();

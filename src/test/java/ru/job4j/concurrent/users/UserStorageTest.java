@@ -8,26 +8,29 @@ public class UserStorageTest {
 
     @Test
     public void whenTransfer50FromUser1ToUser2TwiseThen50And250() throws InterruptedException {
-        for (int iteration = 0; iteration <= 500; iteration++) {
-            User user1 = User.of(1, 150);
-            User user2 = User.of(2, 150);
+        for (int iteration = 0; iteration <= 5000; iteration++) {
+            User user1 = User.of(1, 1500);
+            User user2 = User.of(2, 1500);
             UserStorage storage = new UserStorage();
             storage.add(user1);
             storage.add(user2);
             Thread thread1 = new TransferThread(storage, user1, user2);
             Thread thread2 = new TransferThread(storage, user1, user2);
+            Thread thread3 = new TransferThread(storage, user1, user2);
+            Thread thread4 = new TransferThread(storage, user1, user2);
+            Thread thread5 = new TransferThread(storage, user1, user2);
             thread1.start();
             thread2.start();
+            thread3.start();
+            thread4.start();
+            thread5.start();
             thread1.join();
             thread2.join();
-            if (storage.findById(user1.getId()).getAmount() != 50 ||
-                    storage.findById(user2.getId()).getAmount() != 250) {
-                System.out.println(iteration);
-                System.out.println(storage.findById(user1.getId()));
-                System.out.println(storage.findById(user2.getId()));
-            }
-//            assertEquals(50, storage.findById(user1.getId()).getAmount());
-//            assertEquals(250, storage.findById(user2.getId()).getAmount());
+            thread3.join();
+            thread4.join();
+            thread5.join();
+            assertEquals(1250, storage.findById(user1.getId()).getAmount());
+            assertEquals(1750, storage.findById(user2.getId()).getAmount());
         }
     }
 
