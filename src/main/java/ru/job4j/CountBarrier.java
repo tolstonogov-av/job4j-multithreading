@@ -4,14 +4,9 @@ package ru.job4j;
  * Realizes wait of threads while counter reaches specified value.
  *
  * @author Tolstonofov Alexey, Job4j
- * @version 1.0
+ * @version 2.0
  */
 public class CountBarrier {
-
-    /**
-     * Flag of reaches specified value.
-     */
-    private boolean flag = false;
 
     private final Object monitor = this;
 
@@ -34,16 +29,14 @@ public class CountBarrier {
      */
     public void count() {
         synchronized (monitor) {
-            if (++count == total) {
-                flag = true;
-                monitor.notifyAll();
-            }
+            count++;
+            monitor.notifyAll();
         }
     }
 
     public void await() {
         synchronized (monitor) {
-            if (!flag) {
+            while (count != total) {
                 try {
                     monitor.wait();
                 } catch (InterruptedException e) {
@@ -56,7 +49,6 @@ public class CountBarrier {
     public void reset() {
         synchronized (monitor) {
             count = 0;
-            flag = false;
         }
     }
 }
