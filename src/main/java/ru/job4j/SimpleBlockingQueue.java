@@ -10,7 +10,7 @@ import java.util.Queue;
  * Simple bounded blocking queue.
  *
  * @author Tolstonogov Aleksey
- * @version 1.0
+ * @version 2.0
  *
  * @param <T> type of elements in queue
  */
@@ -55,15 +55,15 @@ public class SimpleBlockingQueue<T> {
      *
      * @return element of queue
      */
-    public synchronized T poll() {
-        try {
-            while (queue.isEmpty()) {
-                wait();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    public synchronized T poll() throws InterruptedException {
+        while (queue.isEmpty()) {
+            wait();
         }
         notify();
         return queue.poll();
+    }
+
+    public synchronized boolean isEmpty() {
+        return queue.isEmpty();
     }
 }
