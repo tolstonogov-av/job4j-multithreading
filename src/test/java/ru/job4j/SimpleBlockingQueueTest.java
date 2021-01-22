@@ -2,8 +2,10 @@ package ru.job4j;
 
 import org.junit.Test;
 
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.*;
 
@@ -11,33 +13,33 @@ import static org.junit.Assert.*;
  * Tests methods of class SimpleBlockingQueue.
  *
  * @author Tolstonogov Aleksey
- * @version 1.0
+ * @version 2.0
  */
 public class SimpleBlockingQueueTest {
 
-    /**
-     * Simple bounded blocking queue to test.
-     */
-    private final SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(2);
-
     @Test
-    public void whenTwoThreadsConsumeAndProduceThenBlockingQueue() throws InterruptedException {
-        List<Integer> result = new LinkedList<>();
-        Thread consumer = new Thread(() -> {
-            result.add(queue.poll());
-            result.add(queue.poll());
-            result.add(queue.poll());
-        });
-        Thread producer = new Thread(() -> {
-            queue.offer(10);
-            queue.offer(30);
-            queue.offer(20);
-            queue.offer(50);
-        });
-        consumer.start();
+    public void whenTwoThreadsConsumeAndProduceThenBlockingQueueNewTest() throws InterruptedException {
+        final CopyOnWriteArrayList<Integer> buffer = new CopyOnWriteArrayList<>();
+        final SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5);
+        Thread producer = new Thread(() -> IntStream.range(0, 5).forEach(queue::offer));
         producer.start();
+        Thread consumer = new Thread(
+                () -> {
+                    while (!queue.isEmpty() || !Thread.currentThread().isInterrupted()) {
+                        try {
+                            buffer.add(queue.poll());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+        );
+        consumer.start();
+        producer.join();
+        consumer.interrupt();
         consumer.join();
         consumer.join();
-        assertEquals(List.of(10, 30, 20), result);
+        assertEquals(List.of(0, 1, 2, 3, 4), buffer);
     }
 }
