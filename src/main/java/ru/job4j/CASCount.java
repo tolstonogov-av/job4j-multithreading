@@ -20,22 +20,12 @@ public class CASCount {
 
     public void increment() {
         Integer expected;
-        try {
-            do {
-                expected = count.get();
-            } while (!count.compareAndSet(expected, expected + 1));
-        } catch (UnsupportedOperationException e) {
-            Thread.currentThread().interrupt();
-            throw new UnsupportedOperationException("Count couldn't be implemented.");
-        }
+        do {
+            expected = count.get();
+        } while (!count.compareAndSet(expected, expected + 1));
     }
 
     public int get() {
-        try {
-            return count.get();
-        } catch (UnsupportedOperationException e) {
-            Thread.currentThread().interrupt();
-            throw new UnsupportedOperationException("Count value couldn't be got.");
-        }
+        return count.get();
     }
 }
