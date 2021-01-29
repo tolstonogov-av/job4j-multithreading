@@ -6,15 +6,19 @@ public class ParallelSearch {
         SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5);
         final Thread consumer = new Thread(
                 () -> {
-                    Integer value;
-                    boolean workingConsumer = true;
-                    while (workingConsumer) {
-                        value = queue.poll();
-                        if (value == null) {
-                            workingConsumer = false;
-                        } else {
-                            System.out.println(value);
+                    try {
+                        Integer value;
+                        boolean workingConsumer = true;
+                        while (workingConsumer) {
+                            value = queue.poll();
+                            if (value == null) {
+                                workingConsumer = false;
+                            } else {
+                                System.out.println(value);
+                            }
                         }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
         );
