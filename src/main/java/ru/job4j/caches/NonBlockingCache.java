@@ -21,19 +21,15 @@ public class NonBlockingCache {
      * @return updated model
      */
     public Base update(Base model) {
-        Base currentModel = tasks.get(model.getId());
-        if (currentModel != null) {
-            int currentVersion = currentModel.getVersion();
-            tasks.computeIfPresent(model.getId(), (integer, base) -> {
-                if (base.getVersion() != currentVersion) {
-                    throw new OptimisticException();
-                }
-                base.setName(model.getName());
-                base.setVersion(currentVersion + 1);
-                return base;
-            });
-        }
-        return currentModel;
+        int currentVersion = tasks.get(model.getId()).getVersion();
+        return tasks.computeIfPresent(model.getId(), (integer, base) -> {
+            if (base.getVersion() != currentVersion) {
+                throw new OptimisticException();
+            }
+            base.setName(model.getName());
+            base.setVersion(currentVersion + 1);
+            return base;
+        });
     }
 
     /**
