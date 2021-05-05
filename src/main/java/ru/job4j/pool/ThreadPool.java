@@ -20,12 +20,14 @@ public class ThreadPool {
     }
 
     private void initThreads (int size) {
-        for (int i = 0; i <= size; i++) {
+        for (int i = 0; i < size; i++) {
             threads.add(new Thread(() -> {
                 while (!softShutdown) {
                     try {
                         Runnable task = tasks.poll();
+                        System.out.println(Thread.currentThread().getName() + " task get");
                         task.run();
+                        System.out.println(Thread.currentThread().getName() + " task done");
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         Thread.currentThread().interrupt();
@@ -36,14 +38,20 @@ public class ThreadPool {
     }
 
     public void work(Runnable job) {
+        System.out.println("Start offer job.");
         tasks.offer(job);
+        System.out.println("Finish offer job.");
+    }
+
+    public void start() {
+        threads.forEach(Thread::start);
     }
 
     public void shutdown() {
         threads.forEach(Thread::interrupt);
     }
 
-    public void softShutdown() {
+    public void join() {
         this.softShutdown = true;
     }
 }
