@@ -30,6 +30,8 @@ public class ThreadPool {
      */
     private final SimpleBlockingQueue<Runnable> tasks = new SimpleBlockingQueue<>(TASKS_COUNT);
 
+    private boolean join = false;
+
     public ThreadPool() {
         initThreads(Runtime.getRuntime().availableProcessors());
     }
@@ -42,7 +44,7 @@ public class ThreadPool {
     private void initThreads (int size) {
         for (int i = 0; i < size; i++) {
             threads.add(new Thread(() -> {
-                while (true) {
+                while (!join) {
                     try {
                         Runnable task = tasks.poll();
                         task.run();
@@ -75,6 +77,15 @@ public class ThreadPool {
      * Shutdown the pool executing.
      */
     public void shutdown() {
-        threads.forEach(Thread::interrupt);
+        join = true;
+        while (!tasks.isEmpty()) {
+        }
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
