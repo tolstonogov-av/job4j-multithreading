@@ -5,20 +5,21 @@ import ru.job4j.SimpleBlockingQueue;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * Class for threads pool.
  *
  * @author Tolstonogov Aleksey
- * @version 1.0
+ * @version 2.0
  */
 @ThreadSafe
 public class ThreadPool {
 
     /**
-     * Count of tasks for blocking queue.
+     * Count of threads for pool.
      */
-    private static final int TASKS_COUNT = 3;
+    private static final int TASKS_POOL = Runtime.getRuntime().availableProcessors();
 
     /**
      * Threads in pool.
@@ -28,33 +29,26 @@ public class ThreadPool {
     /**
      * Queue with tasks.
      */
-    private final SimpleBlockingQueue<Runnable> tasks = new SimpleBlockingQueue<>(TASKS_COUNT);
-
-    private boolean join = false;
-
-    public ThreadPool() {
-        initThreads(Runtime.getRuntime().availableProcessors());
-    }
+    private final SimpleBlockingQueue<Runnable> tasks = new SimpleBlockingQueue<>(TASKS_POOL);
 
     /**
      * Create threads for pool with target, which run task from tasks, while not execute shutdown command.
-     *
-     * @param size Count of threads for pool
      */
-    private void initThreads (int size) {
-        for (int i = 0; i < size; i++) {
-            threads.add(new Thread(() -> {
-                while (!join) {
+    public void start () {
+        IntStream.range(0, TASKS_POOL).forEach(el -> {
+            var thread = new Thread(() -> {
+                while (true) {
                     try {
-                        Runnable task = tasks.poll();
-                        task.run();
+                        tasks.poll().run();
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
                         Thread.currentThread().interrupt();
+                        break;
                     }
                 }
-            }));
-        }
+            });
+            thread.start();
+            threads.add(thread);
+        });
     }
 
     /**
@@ -67,25 +61,11 @@ public class ThreadPool {
     }
 
     /**
-     * Executing pool.
-     */
-    public void start() {
-        threads.forEach(Thread::start);
-    }
-
-    /**
-     * Shutdown the pool executing.
+     * Interrupts the pool executing.
      */
     public void shutdown() {
-        join = true;
         while (!tasks.isEmpty()) {
         }
-        for (Thread t : threads) {
-            try {
-                t.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        threads.forEach(Thread::interrupt);
     }
 }
