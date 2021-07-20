@@ -1,0 +1,172 @@
+3. ForkJoinPool [#315067]
+   Уровень : 3. МидлКатегория : 3.1. MultithreadingТопик : 3.1.6. Пулы
+   НоваяОтветственный : Толстоногов АлексейНачало решения : Обновлена :
+
+Вы уже познакомились с понятием "thread pool", т.е. с пулом потоков. Сегодня мы рассмотрим еще одну его реализацию - ForkJoinPool
+
+Принцип работы
+
+В отличие от ранее рассмотренных пулов, которые работают по шаблону Producer-Consumer, ForkJoinPool работает по принципу work-stealing. Если дословно перевести, то получится "кража работы". Действительно, в отличие пулов, которые вы уже знаете, ForkJoinPool не использует блокирующую очередь, которая заставляет некоторые потоки простаивать. Однако, для этого задачи должны быть делимы на подзадачи. Это основной принцип при работе с ForkJoinPool.
+
+Как вы наверное уже догадались, алгоритмы, при которых часть действий зависит от другой части действия и могут быть делимы -  рекурсивны. Именно поэтому рекурсивные алгоритмы больше всего подходят при использовании ForkJoinPool. Если внимательно вчитаться в слово ForkJoinPool, то можно увидеть два слова: fork - делиться и join - объединяться. То же самое происходит при рекурсии. Она разветвляется (fork) до тех пор, пока не будет точного решения, не зависящего от следующего решения, а далее происходит обратный ход рекурсии (join), т.е. нам становится известно следующее решение и мы вычисляем текущее.
+
+Создание пула
+
+Создать пул можно несколькими способами:
+
+1. Получение пула с готовыми настройками
+
+Мы можем получить пул, исходя из настроек окружения
+
+ForkJoinPool forkJoinPool1 = ForkJoinPool.commonPool();
+
+2. Создание отдельного пула
+
+Как альтернатива, можно создать пул с нашими настройками
+
+ForkJoinPool forkJoinPool2 = new ForkJoinPool();
+
+RecursiveAction и RecursiveTask
+
+Как было сказано, при работе с подобным пулом необходим рекурсивный алгоритм. При этом его нужно как-то прописать. Для этого существуют два класса: RecursiveAction - ничего не возвращает, аналогично Runnable, RecursiveTask - возвращает тип, который мы указываем, аналогично Callable.
+
+Для реализации алгоритма необходимо написать свой класс, который расширяет один из этих классов и имплементировать метод compute().
+
+В качестве примера, реализуем рекурсивную сортировку слиянием (merge sort), которая используется в Java. Сортировка является устойчивой, т.е. не изменяет исходный порядок элементов, а возвращает новый отсортированный массив, поэтому создаются новые массивы в коде, а не перестановка элементов в текущем.
+
+Для ознакомления с алгоритмом реализуем его без распараллеливания.
+
+package ru.job4j.pools;
+
+public class MergeSort {
+
+    public static int[] sort(int[] array) {
+        return sort(array, 0, array.length - 1);
+    }
+
+    private static int[] sort(int[] array, int from, int to) {
+        // при следующем условии, массив из одного элемента
+        // делить нечего, возвращаем элемент
+        if (from == to) {
+            return new int[] { array[from] };
+        }
+        // попали сюда, значит в массиве более одного элемента
+        // находим середину
+        int mid = (from + to) / 2;
+        // объединяем отсортированные части
+        return merge(
+                // сортируем левую часть
+                sort(array, from, mid),
+                // сортируем правую часть
+                sort(array, mid + 1, to)
+        );
+    }
+
+    // Метод объединения двух отсортированных массивов
+    public static int[] merge(int[] left, int[] right) {
+        int li = 0;
+        int ri = 0;
+        int resI = 0;
+        int[] result = new int[left.length + right.length];
+        while (resI != result.length) {
+            if (li == left.length) {
+                result[resI++] = right[ri++];
+            } else if (ri == right.length) {
+                result[resI++] = left[li++];
+            } else if (left[li] <= right[ri]) {
+                result[resI++] = left[li++];
+            } else {
+                result[resI++] = right[ri++];
+            }
+        }
+        return result;
+    }
+
+}
+
+Теперь реализуем его с использованием пула. Т.к. нам нужно возвращать отсортированную часть массива, то будем использовать RecursiveTask
+
+package ru.job4j.pools;
+
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
+
+public class ParallelMergeSort extends RecursiveTask<int[]> {
+
+    private final int[] array;
+    private final int from;
+    private final int to;
+
+    public ParallelMergeSort(int[] array, int from, int to) {
+        this.array = array;
+        this.from = from;
+        this.to = to;
+    }
+
+    @Override
+    protected int[] compute() {
+        if (from == to) {
+            return new int[] {array[from]};
+        }
+        int mid = (from + to) / 2;
+        // создаем задачи для сортировки частей
+        ParallelMergeSort leftSort = new ParallelMergeSort(array, from, mid);
+        ParallelMergeSort rightSort = new ParallelMergeSort(array, mid + 1, to);
+        // производим деление.
+        // оно будет происходить, пока в частях не останется по одному элементу
+        leftSort.fork();
+        rightSort.fork();
+        // объединяем полученные результаты
+        int[] left = leftSort.join();
+        int[] right = rightSort.join();
+        return MergeSort.merge(left, right);
+    }
+
+    public static int[] sort(int[] array) {
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        return forkJoinPool.invoke(new ParallelMergeSort(array, 0, array.length - 1));
+    }
+
+}
+
+Давайте рассмотрим используемые в данном алгоритме методы подробнее:
+
+- метод fork() служит для деления. Это аналогично тому, что мы запустили бы рекурсивный метод еще раз
+
+Например в случае факториала,
+
+factorialTask.fork()
+
+Аналогично запуску fact()
+
+n * fact(n - 1)
+
+- метод join(). Этот метод как раз дает пулу знать, что нужно запустить задачу в отдельном потоке
+
+- метод invoke(). Этот метод служит для запуска выполнения
+
+Изобразим схематично, как работает алгоритм:
+
+Когда выполнение доходит до уровня голубого цвета, начинается выполнение задач потоками из пула.
+
+Доп. материалы:
+
+- визуализация сортировки
+
+https://www.cs.usfca.edu/~galles/visualization/ComparisonSort.html
+
+- более подробно
+
+https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html
+
+https://www.baeldung.com/java-fork-join
+
+https://www.youtube.com/watch?v=t0dGLFtRR9c
+
+Задание:
+
+1. Реализовать параллельный поиск индекса в массиве объектов. В целях оптимизации, если размер массива не больше 10, использовать обычный линейный поиск. Метод поиска должен быть обобщенным
+
+2. Залить код на github
+
+3. Перевести ответственного на Петра Арсентьева
