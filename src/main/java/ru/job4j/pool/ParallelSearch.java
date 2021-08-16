@@ -52,7 +52,7 @@ public class ParallelSearch extends RecursiveTask<Integer> {
     protected Integer compute() {
         int result;
         if (to - from < 10) {
-            result = linearSearch(array, from, to, object);
+            result = linearSearch(from, to);
         } else {
             int mid = (from + to) / 2;
             ParallelSearch leftSearch = new ParallelSearch(array, from, mid, object);
@@ -72,13 +72,11 @@ public class ParallelSearch extends RecursiveTask<Integer> {
     /**
      * Linear serial search index in array.
      *
-     * @param array array, in which the search is performed
      * @param from begin index for search
      * @param to end index for search
-     * @param object object that is being searched in array
      * @return result of searching, if no result - -1
      */
-    private int linearSearch(Object[] array, int from, int to, Object object) {
+    private int linearSearch(int from, int to) {
         int result = -1;
         for (int i = from; i <= to; i++) {
             if (array[i].equals(object)) {
