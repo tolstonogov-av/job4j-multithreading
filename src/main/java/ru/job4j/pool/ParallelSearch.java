@@ -50,23 +50,17 @@ public class ParallelSearch extends RecursiveTask<Integer> {
      */
     @Override
     protected Integer compute() {
-        int result;
         if (to - from < 10) {
-            result = linearSearch(from, to);
-        } else {
-            int mid = (from + to) / 2;
-            ParallelSearch leftSearch = new ParallelSearch(array, from, mid, object);
-            ParallelSearch rightSearch = new ParallelSearch(array, mid + 1, to, object);
-            leftSearch.fork();
-            rightSearch.fork();
-            result = leftSearch.join();
-            if (result == -1) {
-                result = rightSearch.join();
-            } else {
-                rightSearch.cancel(true);
-            }
+            return linearSearch(from, to);
         }
-        return result;
+        int mid = (from + to) / 2;
+        ParallelSearch leftSearch = new ParallelSearch(array, from, mid, object);
+        ParallelSearch rightSearch = new ParallelSearch(array, mid + 1, to, object);
+        leftSearch.fork();
+        rightSearch.fork();
+        int left = leftSearch.join();
+        int right = rightSearch.join();
+        return Math.max(left, right);
     }
 
     /**
